@@ -63,9 +63,9 @@ char    *ft_strdup(char *str)
 	char *dup;
 	if (!str)
 		return (NULL);
-	dup = malloc(sizeof(char) * ft_strlen(str) + 1);
+	dup = malloc(sizeof(char) * (ft_strlen(str) + 1));
 	if (!dup)
-		exit_fatal();
+        return (NULL);
 	while (str[i])
 	{
 		dup[i] = str[i];
@@ -123,17 +123,15 @@ int	parse_argv(t_data **lst, char **av)
 	{
 		new->argv[size] = ft_strdup(av[size]);
 	}
-	new->type = check_end(new->argv[new->size]);
+	new->type = check_end(av[new->size]);
 	lst_addback(lst, new);
 	return (new->size);
 }
 
 //execute
 
-void	exec_cmd(t_data *data, char **env)
+void	exec_cmd(t_data *temp, char **env)
 {
-	t_data *temp;
-	temp = data;
 	int	pid;
 	int	status;
 	int	pipe_open = 0;
@@ -146,11 +144,11 @@ void	exec_cmd(t_data *data, char **env)
 	pid = fork();
 	if (pid < 0)
 		exit_fatal();
-	if (pid == 0)
+	else if (pid == 0)
 	{
 		if (temp->type == TYPE_PIPE && dup2(temp->fd[1], 1) < 0)
 			exit_fatal();
-		else if (temp->prev && temp->prev->type == TYPE_PIPE && dup2(temp->fd[0], 0) < 0)
+		else if (temp->prev && temp->prev->type == TYPE_PIPE && dup2(temp->prev->fd[0], 0) < 0)
 			exit_fatal();
 		if (execve(temp->argv[0], temp->argv, env) < 0)
 			exec_error(temp->argv[0]);
@@ -164,9 +162,9 @@ void	exec_cmd(t_data *data, char **env)
 			close(temp->fd[1]);
 			if (!temp->next || temp->type == TYPE_BREAK)
 				close(temp->fd[0]);
-			if (temp->prev && temp->prev->type == TYPE_PIPE)
-				close(temp->fd[0]);
 		}
+		if (temp->prev && temp->prev->type == TYPE_PIPE)
+			close(temp->fd[0]);
 	}
 }
 void	exec_cmds(t_data *data, char **env)
